@@ -8,18 +8,6 @@ def log(*args):
     print(*args, file=sys.stderr)
 
 
-def get_all(query):
-    l = []
-    page = 0
-    while True:
-        next_list = query(per_page=50, page=page)
-        if not next_list:
-            break
-        l.extend(next_list)
-        page += 1
-    return l
-
-
 def print_labels(issue):
     print("\t", end='')
     for label in issue.labels:
@@ -31,15 +19,15 @@ def make_changelog():
     config = ConfigParser()
     config.read('defaults.cfg')
 
-    gl = Gitlab(config.get('gitlab', 'url'), config.get('gitlab', 'key'))
+    gl = Gitlab(config.get('gitlab', 'url'), config.get('gitlab', 'key'), api_version='4')
     gl.auth()
 
     look_for = config.get('gitlab', 'project')
-    project_name = '/' in look_for and look_for.split('/', 1)[1] or look_for
+    project_path, project_name = '/' in look_for and look_for.split('/', 1) or (None, look_for)
 
     gl_project = None
     log("Looking for project '%s'" % project_name)
-    for p in gl.projects.search(project_name):
+    for p in gl.projects.list(search=project_name):
         log(p.path_with_namespace)
         if p.path_with_namespace == look_for:
             gl_project = p
@@ -56,7 +44,8 @@ def make_changelog():
 
     for milestone in milestones:
         # log(milestone)
-        issues = [issue for issue in get_all(milestone.issues) if not issue.confidential]
+        # log(len(milestone.issues()))
+        issues = [issue for issue in milestone.issues() if not issue.confidential]
         title = "%s (%s) (%d issues)" % (milestone.title, milestone.due_date, len(issues))
         print(title)
         print('-' * len(title))
@@ -65,7 +54,7 @@ def make_changelog():
         for issue in issues:
             # log(issue)
             if 'feature' in issue.labels:
-                print("* Feature #%d: %s " % (issue.iid, issue.title), end='')
+                print("* **Feature #%d**: %s " % (issue.iid, issue.title), end='')
                 print_labels(issue)
                 print()
 
@@ -73,7 +62,7 @@ def make_changelog():
         for issue in issues:
             # log(issue)
             if 'bug' in issue.labels:
-                print("* Fix #%d: %s " % (issue.iid, issue.title), end='')
+                print("* **Fix #%d**: %s " % (issue.iid, issue.title), end='')
                 print_labels(issue)
                 print()
 
@@ -81,7 +70,7 @@ def make_changelog():
         for issue in issues:
             # log(issue)
             if 'bug' not in issue.labels and 'feature' not in issue.labels:
-                print("* #%d: %s " % (issue.iid, issue.title), end='')
+                print("* **#%d**: %s " % (issue.iid, issue.title), end='')
                 print_labels(issue)
                 print()
 
