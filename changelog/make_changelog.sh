@@ -1,5 +1,5 @@
 #!/bin/bash
-# Author:Andrey Nikishaev
+# Author: Cedric RICARD
 echo "CHANGELOG"
 echo ----------------------
 PATH="/c/Git/bin:$PATH"
